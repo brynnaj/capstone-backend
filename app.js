@@ -16,7 +16,7 @@ app.post('/api/botMessage', async (req, res) => {
 app.post('/api/evaluateLoan', async (req, res) => {
     const { creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
     const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
-    response = completion.choices[0].message.content.split('|||');
+    const response = completion.choices[0].message.content.split('|||');
     res.send(
         JSON.stringify({
             riskLevel: response[0].trim(),
