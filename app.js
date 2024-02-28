@@ -8,10 +8,20 @@ app.use(express.json());
 const chatbot = require('./utils/chatbot.js');
 
 app.post('/api/botMessage', async (req, res) => {
-    const { message } = req.body;
-    const { history } = req.body;
+    const { message, history } = req.body;
     const completion = await chatbot.botMessage(message, history);
     res.send(JSON.stringify(completion.choices[0].message.content))
+})
+
+app.post('/api/evaluateLoan', async (req, res) => {
+    const { creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
+    const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
+    response = completion.choices[0].message.content.split('|||');
+    res.send(
+        JSON.stringify({
+            riskLevel: response[0].trim(),
+            reason: response[1].trim()
+        }))
 })
 
 app.listen(port, () => {

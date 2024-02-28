@@ -21,6 +21,26 @@ async function botMessage(message, history){
     return completion
 }
 
+async function evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength){
+    const completion = await openai.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are a loan evaluator. The user will enter in their information and you will make a risk assessment based on the information given.
+                      Here is the user's information: ||| Credit Score: ${creditScore} ||| Income: ${income} ||| Income Debt Ratio: ${incomeDebtRatio} ||| Expenses: ${expenses} ||| Loan Type: ${loanType} ||| Loan Amount: ${loanAmount} ||| Loan Length: ${loanLength} |||
+                      In your response you must have a risk level of low, medium, or high. You must also have a reason for your decision.
+                      Format your response like this: 
+                      Low ||| Your reason here.`,
+          },
+          { role: "user", content: "Make the assessment" },
+        ],
+        model: "gpt-3.5-turbo-16k-0613",
+        response_format: { type: "text" },
+    });
+    return completion
+}
+
 module.exports = {
     botMessage,
+    evaluateLoan,
 }
