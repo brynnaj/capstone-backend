@@ -7,6 +7,10 @@ app.use(express.json());
 
 const chatbot = require('./utils/chatbot.js');
 
+chatbot.connectChat(app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+}));
+
 app.post('/api/botMessage', async (req, res) => {
     const { message, history } = req.body;
     const completion = await chatbot.botMessage(message, history);
@@ -19,11 +23,7 @@ app.post('/api/evaluateLoan', async (req, res) => {
     const response = completion.choices[0].message.content.split('|||');
     res.send(
         JSON.stringify({
-            riskLevel: response[0].trim(),
+            riskLevel: response[0].trim(), 
             reason: response[1].trim()
         }))
-})
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 })
