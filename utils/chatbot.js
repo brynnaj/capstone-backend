@@ -2,6 +2,20 @@ require('dotenv').config();
 const apiKey = process.env.apiKey
 const OpenAI = require('openai')
 const openai = new OpenAI({apiKey})
+const socketIO = require('socket.io');
+
+function connectChat(server){
+    const io = socketIO(server,{
+        cors: {
+          origin: 'http://localhost:3000',
+          methods: ['GET', 'POST'],
+        },
+      })
+    io.on('connection', socket=>{
+        socket.on('joinRoom', room => socket.join(room))
+        socket.on('chat message', msg=> io.to(msg.room).emit('chat message', `You: ${msg.message}`))
+    })
+}
 
 async function botMessage(message, history){
     const completion = await openai.chat.completions.create({
@@ -43,4 +57,5 @@ async function evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loan
 module.exports = {
     botMessage,
     evaluateLoan,
+    connectChat,
 }
