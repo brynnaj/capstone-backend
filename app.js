@@ -57,6 +57,34 @@ app.post('/newuser', (req, res) => {
     res.end()
   });
 });
+
+//login functionality
+app.post('/signin', (req, res) => {
+  const emailaddress = req.body.emailaddress;
+  const password = req.body.password;
+
+  // checks if any of the fields are empty  
+  if (!emailaddress || !password) {
+    res.status(400).write('Please enter all fields');
+    res.end()
+  } 
+  // query that selects data from the database
+  const selectQuery = 'SELECT * FROM Users WHERE emailaddress = ? AND password = ?';
+  database.query(selectQuery, [emailaddress, password], (err, result) => {
+    if (err) {
+      res.status(500).write('Error logging in');
+      throw err;
+      res.end()
+    }
+    if (result.length === 0) {
+      res.status(400).write('Invalid email or password');
+      res.end()
+    } else {
+      res.status(200).write(JSON.stringify('Login successful'));
+      res.end()
+    }
+  });
+});
   
 
 
