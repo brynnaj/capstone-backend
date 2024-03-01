@@ -19,14 +19,41 @@ app.post('/api/botMessage', async (req, res) => {
 })
 
 app.post('/api/evaluateLoan', async (req, res) => {
-    const { creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
-    const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
-    const response = completion.choices[0].message.content.split('|||');
-    res.send(
-        JSON.stringify({
-            riskLevel: response[0].trim(), 
-            reason: response[1].trim()
-        }))
+    const { UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
+    if (!creditScore || !income || !incomeDebtRatio || !expenses || !loanType || !loanAmount || !loanLength) {
+        res.status(400).send(JSON.stringify({
+                errorKey: 400,
+                error: 'Missing parameter'
+            }));
+    }
+    try{
+        const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
+        const response = completion.choices[0].message.content.split('|||');
+        const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
+            if (err) {
+                res.status(500).send(JSON.stringify(
+                    {
+                        errorKey: 500,
+                        error: err
+                    }
+                ));
+                throw err;
+            }
+        });
+        res.status(200).send(
+            JSON.stringify({
+                riskLevel: response[0].trim(), 
+                reason: response[1].trim()
+            }))
+    } catch {
+        res.status(500).send(JSON.stringify(
+            {
+                errorKey: 500,
+                error: 'Internal server error'
+            }
+        ));
+    }
 })
 
 //creates new user
@@ -84,15 +111,9 @@ app.post('/signin', (req, res) => {
       res.status(400).write('Invalid email or password');
       res.end()
     } else {
-      res.status(200).write(JSON.stringify('Login successful'));
+      res.status(200).write(JSON.stringify(result));
       res.end()
     }
   });
 });
-  
 
-
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-})
