@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const port = 4000;
 const cors = require('cors');
+const database = require('./database.js')
 app.use(cors());
 app.use(express.json());
 
@@ -23,6 +24,42 @@ app.post('/api/evaluateLoan', async (req, res) => {
             reason: response[1].trim()
         }))
 })
+
+//creates new user
+app.post('/newuser', (req, res) => {
+  const firstname = req.body.firstname;
+  const lastname = req.body.lastname;
+  const emailaddress = req.body.emailaddress;
+  const password = req.body.password;
+  const confirmpassword = req.body.confirmpassword;
+  console.log(req.body)
+  // checks if any of the fields are empty
+  if (!firstname || !lastname || !emailaddress || !password) {
+    res.status(400).write('Please enter all fields');
+    res.end()
+  }
+
+  //check if passwords and confirm password match
+  if (password !== confirmpassword) {
+    res.status(400).write('Passwords do not match');
+    res.end()
+  }
+  
+  // query that inserts data into the database
+  const insertQuery = 'INSERT INTO Users (firstname, lastname, emailaddress, password) VALUES (?, ?, ?, ?)';
+  database.query(insertQuery, [firstname, lastname, emailaddress, password], (err) => {
+    if (err) {
+      res.status(500).write('Error registering user');
+      throw err;
+      res.end()
+    }
+    res.status(200).write(JSON.stringify('User registered successfully'));
+    res.end()
+  });
+});
+  
+
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
