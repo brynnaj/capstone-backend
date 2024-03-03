@@ -128,23 +128,20 @@ app.post('/adminsignin', (req, res) => {
 
   // checks if any of the fields are empty
   if (!userid || !password) {
-    res.status(400).write('Please enter all fields');
-    res.end()
+    res.status(400).json({ message: 'Please enter all fields' });
+    return;
   } 
   // query that selects data from the database
   const selectQuery = 'SELECT * FROM Users WHERE userid = ? AND password = ? AND usertype = ?';
   database.query(selectQuery, [userid, password, usertype], (err, result) => {
     if (err) {
-      res.status(500).write('Error logging in');
+      res.status(500).json({ message: 'Error logging in' });
       throw err;
-      res.end()
     }
     if (result.length === 0) {
-      res.status(400).write('Invalid userid or password');
-      res.end()
+      res.status(400).json({ message: 'Invalid userid or password' });
     } else {
-      res.status(200).write(JSON.stringify('Login successful'));
-      res.end()
+      res.status(200).json({ message: 'Login successful' });
     }
   });
 });
@@ -158,7 +155,7 @@ app.post('/loans', (req, res) => {
   const amount_paid = req.body.amount_paid;
   
   //query that inserts data into the database
-  const insertQuery = 'INSERT INTO loans (loanid, userid, loan_amount, loan_term, amount_paid) VALUES (?, ?, ?, ?, ?)';
+  const insertQuery = 'INSERT INTO Loans (loanid, userid, loan_amount, loan_term, amount_paid) VALUES (?, ?, ?, ?, ?)';
   database.query(insertQuery, [loanid, userid, loan_amount, loan_term, amount_paid], (err) => {
     if (err) {
       res.status(500).write('Error inserting loan');
@@ -176,7 +173,7 @@ app.post('/loans', (req, res) => {
 
 //endpoint to fetch loans to display on dashboard
 app.post('/loaninfo', (req, res) => {
-  const selectQuery = 'SELECT * FROM loans';
+  const selectQuery = 'SELECT * FROM Loans';
   database.query(selectQuery, (err, result) => {
     if (err) {
       res.status(500).write('Error fetching loans');
