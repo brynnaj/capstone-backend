@@ -155,7 +155,7 @@ app.post('/loans', (req, res) => {
   const amount_paid = req.body.amount_paid;
   
   //query that inserts data into the database
-  const insertQuery = 'INSERT INTO loans (loanid, userid, loan_amount, loan_term, amount_paid) VALUES (?, ?, ?, ?, ?)';
+  const insertQuery = 'INSERT INTO Loans (loanid, userid, loan_amount, loan_term, amount_paid) VALUES (?, ?, ?, ?, ?)';
   database.query(insertQuery, [loanid, userid, loan_amount, loan_term, amount_paid], (err) => {
     if (err) {
       res.status(500).write('Error inserting loan');
@@ -173,7 +173,7 @@ app.post('/loans', (req, res) => {
 
 //endpoint to fetch loans to display on dashboard
 app.post('/loaninfo', (req, res) => {
-  const selectQuery = 'SELECT * FROM loans';
+  const selectQuery = 'SELECT * FROM Loans';
   database.query(selectQuery, (err, result) => {
     if (err) {
       res.status(500).write('Error fetching loans');
