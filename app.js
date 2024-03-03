@@ -128,23 +128,20 @@ app.post('/adminsignin', (req, res) => {
 
   // checks if any of the fields are empty
   if (!userid || !password) {
-    res.status(400).write('Please enter all fields');
-    res.end()
+    res.status(400).json({ message: 'Please enter all fields' });
+    return;
   } 
   // query that selects data from the database
   const selectQuery = 'SELECT * FROM Users WHERE userid = ? AND password = ? AND usertype = ?';
   database.query(selectQuery, [userid, password, usertype], (err, result) => {
     if (err) {
-      res.status(500).write('Error logging in');
+      res.status(500).json({ message: 'Error logging in' });
       throw err;
-      res.end()
     }
     if (result.length === 0) {
-      res.status(400).write('Invalid userid or password');
-      res.end()
+      res.status(400).json({ message: 'Invalid userid or password' });
     } else {
-      res.status(200).write(JSON.stringify('Login successful'));
-      res.end()
+      res.status(200).json({ message: 'Login successful' });
     }
   });
 });
