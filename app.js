@@ -121,3 +121,31 @@ app.post('/signin', (req, res) => {
   });
 });
 
+app.post('.adminsignin', (req, res) => {
+  const userid = req.body.userid;
+  const password = req.body.password;
+  const usertype = 'admin';
+
+  // checks if any of the fields are empty
+  if (!userid || !password) {
+    res.status(400).write('Please enter all fields');
+    res.end()
+  } 
+  // query that selects data from the database
+  const selectQuery = 'SELECT * FROM Users WHERE userid = ? AND password = ? AND usertype = ?';
+  database.query(selectQuery, [userid, password, usertype], (err, result) => {
+    if (err) {
+      res.status(500).write('Error logging in');
+      throw err;
+      res.end()
+    }
+    if (result.length === 0) {
+      res.status(400).write('Invalid userid or password');
+      res.end()
+    } else {
+      res.status(200).write(JSON.stringify('Login successful'));
+      res.end()
+    }
+  });
+});
+
