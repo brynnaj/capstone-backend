@@ -21,10 +21,11 @@ app.post('/api/botMessage', async (req, res) => {
 app.post('/api/evaluateLoan', async (req, res) => {
     const { UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
     if (!creditScore || !income || !incomeDebtRatio || !expenses || !loanType || !loanAmount || !loanLength) {
-        res.status(400).send(JSON.stringify({
+        res.status(400).write(JSON.stringify({
                 errorKey: 400,
                 error: 'Missing parameter'
             }));
+        res.end()
     }
     try{
         const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
@@ -32,27 +33,30 @@ app.post('/api/evaluateLoan', async (req, res) => {
         const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)';
         database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
             if (err) {
-                res.status(500).send(JSON.stringify(
+                res.status(500).write(JSON.stringify(
                     {
                         errorKey: 500,
                         error: err
                     }
                 ));
+                res.end()
                 throw err;
             }
         });
-        res.status(200).send(
+        res.status(200).write(
             JSON.stringify({
                 riskLevel: response[0].trim(), 
                 reason: response[1].trim()
             }))
+        res.end()
     } catch {
-        res.status(500).send(JSON.stringify(
+        res.status(500).write(JSON.stringify(
             {
                 errorKey: 500,
                 error: 'Internal server error'
             }
         ));
+        res.end()
     }
 })
 
