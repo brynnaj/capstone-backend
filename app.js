@@ -121,7 +121,7 @@ app.post('/signin', (req, res) => {
   });
 });
 
-app.post('.adminsignin', (req, res) => {
+app.post('/adminsignin', (req, res) => {
   const userid = req.body.userid;
   const password = req.body.password;
   const usertype = 'admin';
@@ -148,4 +148,45 @@ app.post('.adminsignin', (req, res) => {
     }
   });
 });
+
+//endpoint to insert loans into the database
+app.post('/loans', (req, res) => {
+  const loanid = req.body.loanid;
+  const userid = req.body.userid;
+  const loan_amount = req.body.loan_amount;
+  const loan_term = req.body.loan_term;
+  const amount_paid = req.body.amount_paid;
+  
+  //query that inserts data into the database
+  const insertQuery = 'INSERT INTO loans (loanid, userid, loan_amount, loan_term, amount_paid) VALUES (?, ?, ?, ?, ?)';
+  database.query(insertQuery, [loanid, userid, loan_amount, loan_term, amount_paid], (err) => {
+    if (err) {
+      res.status(500).write('Error inserting loan');
+      throw err;
+      res.end()
+    }
+    res.status(200).write(JSON.stringify('Loan inserted successfully'));
+    res.end()
+  });
+});
+
+
+
+
+
+//endpoint to fetch loans to display on dashboard
+app.post('/loaninfo', (req, res) => {
+  const selectQuery = 'SELECT * FROM loans';
+  database.query(selectQuery, (err, result) => {
+    if (err) {
+      res.status(500).write('Error fetching loans');
+      throw err;
+      res.end()
+    }
+    res.status(200).write(JSON.stringify(result));
+    res.end()
+  });
+}
+);
+
 
