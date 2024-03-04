@@ -50,6 +50,7 @@ app.post('/api/evaluateLoan', async (req, res) => {
                     res.end()
                     throw err;
                 }
+                console.log(result[0])
                 insertQuery = 'INSERT INTO status (UserID, EvaluationID, Risk, LoanStatus, Reason) VALUES (?,?,?,?,?)';
                 database.query(insertQuery, [UserID, result[0].EvaluationID, result[0].riskLevel, 'under review', result[0].reason], (err) => {
                     if (err) {
@@ -229,6 +230,7 @@ app.post('/updateLoan', (req, res) => {
                 res.status(500).write('Error fetching loans');
                 throw err;
             }
+            console.log(result[0])
             query = 'INSERT INTO Loans (userid, loan_amount, loan_term, amount_paid) VALUES (?,?,?,?,)';
             database.query(query, [result[0].UserID, result[0].loanAmount, result[0].loanLength, 0,], (err) => {
                 if (err) {
@@ -241,4 +243,8 @@ app.post('/updateLoan', (req, res) => {
     res.status(200).write(JSON.stringify('Loan updated successfully'));
     res.end()
 })
+
+/////////////
+// payments
+/////////////
 
