@@ -26,37 +26,38 @@ app.post('/api/evaluateLoan', async (req, res) => {
                 error: 'Missing parameter'
             }));
         res.end()
-    }
-    try{
-        const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
-        const response = completion.choices[0].message.content.split('|||');
-        const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)';
-        database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
-            if (err) {
-                res.status(500).write(JSON.stringify(
-                    {
-                        errorKey: 500,
-                        error: err
-                    }
-                ));
-                res.end()
-                throw err;
-            }
-        });
-        res.status(200).write(
-            JSON.stringify({
-                riskLevel: response[0].trim(), 
-                reason: response[1].trim()
-            }))
-        res.end()
-    } catch {
-        res.status(500).write(JSON.stringify(
-            {
-                errorKey: 500,
-                error: 'Internal server error'
-            }
-        ));
-        res.end()
+    } else {
+        try{
+            const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
+            const response = completion.choices[0].message.content.split('|||');
+            const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)';
+            database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
+                if (err) {
+                    res.status(500).write(JSON.stringify(
+                        {
+                            errorKey: 500,
+                            error: err
+                        }
+                    ));
+                    res.end()
+                    throw err;
+                }
+            });
+            res.status(200).write(
+                JSON.stringify({
+                    riskLevel: response[0].trim(), 
+                    reason: response[1].trim()
+                }))
+            res.end()
+        } catch {
+            res.status(500).write(JSON.stringify(
+                {
+                    errorKey: 500,
+                    error: 'Internal server error'
+                }
+            ));
+            res.end()
+        }
     }
 })
 
