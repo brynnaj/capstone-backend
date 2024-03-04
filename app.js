@@ -38,11 +38,6 @@ app.post('/api/evaluateLoan', async (req, res) => {
                     throw err;
                 }
             });
-            res.status(200).write(
-                JSON.stringify({
-                    riskLevel: response[0].trim(), 
-                    reason: response[1].trim()
-                }))
             insertQuery = 'SELECT UserID, EvaluationID, riskLevel, reason FROM evaluate WHERE UserID = ? AND creditScore = ? AND income = ? AND incomeDebtRatio = ? AND expenses = ? AND loanType = ? AND loanAmount = ? AND loanLength = ?';
             database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength], (err, result) => {
                 if (err) {
@@ -60,8 +55,12 @@ app.post('/api/evaluateLoan', async (req, res) => {
                     }
                 });
             });
+            res.status(200).write(
+                JSON.stringify({
+                    riskLevel: response[0].trim(), 
+                    reason: response[1].trim()
+                }))
             res.end()
-
         } catch {
             res.status(500).write(JSON.stringify( { errorKey: 500, error: 'Internal server error'} ));
             res.end()
