@@ -204,6 +204,84 @@ app.post('/loaninfo', (req, res) => {
 );
 
 
-module.exports = app;
+/////////////
+// admin dashboard
+/////////////
+
+app.post('/adminDashboard', (req, res) => {})
+
+/////////////
+// admin review
+/////////////
+
+app.post('/reviewLoan', (req, res) => {
+  const query = 'SELECT e.* FROM evaluate e JOIN status s ON e.EvaluationID = s.EvaluationID WHERE s.LoanStatus = ?';
+    database.query(query, ['under review'], (err, result) => {
+        if (err) {
+            res.status(500).write('Error fetching loans');
+            throw err;
+        }
+        res.status(200).write(JSON.stringify(result));
+        res.end()
+    });
+})
+
+app.post('/updateLoan', (req, res) => {
+    const { EvaluationID, LoanStatus } = req.body;
+    let query = 'UPDATE status SET LoanStatus = ? WHERE EvaluationID = ?';
+    database.query(query, [LoanStatus, EvaluationID], (err) => {
+        if (err) {
+            res.status(500).write('Error updating loan');
+            throw err;
+        }
+        
+    });
+    if (LoanStatus === 'approved') {
+        query = 'SELECT * FROM evaluate WHERE EvaluationID = ?';
+        database.query(query, [EvaluationID], (err, result) => {
+            if (err) {
+                res.status(500).write('Error fetching loans');
+                throw err;
+            }
+            console.log(result[0])
+            query = 'INSERT INTO Loans (userid, loan_amount, loan_term, amount_paid, loan_type) VALUES (?,?,?,?,?)';
+            database.query(query, [result[0].UserID, result[0].loanAmount, result[0].loanLength, 0,result[0].loanType], (err) => {
+                if (err) {
+                    res.status(500).write('Error inserting loan');
+                    throw err;
+                }
+            });
+        });
+    }
+    res.status(200).write(JSON.stringify('Loan updated successfully'));
+    res.end()
+})
 
 
+
+app.post('/getLoans', (req, res) => {
+    const { UserID } = req.body
+   
+    let query = 'SELECT * FROM Loans WHERE UserID = ?';
+    database.query(query, [UserID], (err, result) => {
+        if (err) {
+            res.status(500).write('Error fetching loans');
+            throw err;
+        }
+        res.status(200).write(JSON.stringify(result));
+        res.end()
+    });
+})
+
+app.post('/makePayment', (req, res) => {
+    const { LoanID, AmountPaid } = req.body
+    let query = 'UPDATE Loans SET amount_paid = amount_paid + ? WHERE LoanID = ?';
+    database.query(query, [AmountPaid, LoanID], (err) => {
+        if (err) {
+            res.status(500).write('Error making payment');
+            throw err;
+        }
+        res.status(200).write(JSON.stringify('Payment made successfully'));
+        res.end()
+    });
+})
