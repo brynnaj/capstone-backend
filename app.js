@@ -201,6 +201,12 @@ app.post('/loaninfo', (req, res) => {
 );
 
 /////////////
+// admin dashboard
+/////////////
+
+app.post('/adminDashboard', (req, res) => {})
+
+/////////////
 // admin review
 /////////////
 
