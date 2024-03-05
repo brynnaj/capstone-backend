@@ -26,49 +26,37 @@ app.post('/api/evaluateLoan', async (req, res) => {
                 error: 'Missing parameter'
             }));
         res.end()
-    } else {
-        try{
-            const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
-            const response = completion.choices[0].message.content.split('|||');
-            let insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)';
-            database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
-                if (err) {
-                    res.status(500).write(JSON.stringify( {errorKey: 500, error: err} ));
-                    res.end()
-                    throw err;
-                }
-            });
-            insertQuery = 'SELECT UserID, EvaluationID, riskLevel, reason FROM evaluate WHERE UserID = ? AND creditScore = ? AND income = ? AND incomeDebtRatio = ? AND expenses = ? AND loanType = ? AND loanAmount = ? AND loanLength = ?';
-            database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength], (err, result) => {
-                if (err) {
-                    res.status(500).write(JSON.stringify( {errorKey: 500, error: err} ));
-                    res.end()
-                    throw err;
-                }
-                if (result.length === 0) {
-                    res.status(404).write(JSON.stringify( {errorKey: 404, error: 'No evaluation found for the provided criteria'} ));
-                    res.end();
-                } else {
-                    insertQuery = 'INSERT INTO status (UserID, EvaluationID, Risk, LoanStatus, Reason) VALUES (?,?,?,?,?)';
-                    database.query(insertQuery, [UserID, result[0].EvaluationID, result[0].riskLevel, 'under review', result[0].reason], (err) => {
-                        if (err) {
-                            res.status(500).write(JSON.stringify( {errorKey: 500, error: err} ));
-                            res.end()
-                            throw err;
-                        }
-                    });
-                }
-            });
-            res.status(200).write(
-                JSON.stringify({
-                    riskLevel: response[0].trim(), 
-                    reason: response[1].trim()
-                }))
-            res.end()
-        } catch {
-            res.status(500).write(JSON.stringify( { errorKey: 500, error: 'Internal server error'} ));
-            res.end()
-        }
+    }
+    try{
+        const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
+        const response = completion.choices[0].message.content.split('|||');
+        const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
+            if (err) {
+                res.status(500).write(JSON.stringify(
+                    {
+                        errorKey: 500,
+                        error: err
+                    }
+                ));
+                res.end()
+                throw err;
+            }
+        });
+        res.status(200).write(
+            JSON.stringify({
+                riskLevel: response[0].trim(), 
+                reason: response[1].trim()
+            }))
+        res.end()
+    } catch {
+        res.status(500).write(JSON.stringify(
+            {
+                errorKey: 500,
+                error: 'Internal server error'
+            }
+        ));
+        res.end()
     }
 })
 
@@ -91,6 +79,21 @@ app.post('/newuser', (req, res) => {
     res.status(400).write('Passwords do not match');
     res.end()
   }
+
+  // query that checks if email already exists in the database
+  const selectQuery = 'SELECT * FROM Users WHERE emailaddress = ?';
+  database.query(selectQuery, [emailaddress], (err, result) => {
+    if (err) {
+      res.status(500).write('Error registering user');
+      throw err;
+      res.end()
+    }
+    if (result.length > 0) {
+      res.status(400).write(JSON.stringify({ error: 'Email already exists' }));
+
+      res.end()
+    }
+  });
   
   // query that inserts data into the database
   const insertQuery = 'INSERT INTO Users (firstname, lastname, emailaddress, password) VALUES (?, ?, ?, ?)';
@@ -200,54 +203,7 @@ app.post('/loaninfo', (req, res) => {
 }
 );
 
-/////////////
-// admin review
-/////////////
 
-app.post('/reviewLoan', (req, res) => {
-  const query = 'SELECT e.* FROM evaluate e JOIN status s ON e.EvaluationID = s.EvaluationID WHERE s.LoanStatus = ?';
-    database.query(query, ['under review'], (err, result) => {
-        if (err) {
-            res.status(500).write('Error fetching loans');
-            throw err;
-        }
-        res.status(200).write(JSON.stringify(result));
-        res.end()
-    });
-})
+module.exports = app;
 
-app.post('/updateLoan', (req, res) => {
-    const { EvaluationID, LoanStatus } = req.body;
-    let query = 'UPDATE status SET LoanStatus = ? WHERE EvaluationID = ?';
-    database.query(query, [LoanStatus, EvaluationID], (err) => {
-        if (err) {
-            res.status(500).write('Error updating loan');
-            throw err;
-        }
-        
-    });
-    if (LoanStatus === 'approved') {
-        query = 'SELECT * FROM evaluate WHERE EvaluationID = ?';
-        database.query(query, [EvaluationID], (err, result) => {
-            if (err) {
-                res.status(500).write('Error fetching loans');
-                throw err;
-            }
-            console.log(result[0])
-            query = 'INSERT INTO Loans (userid, loan_amount, loan_term, amount_paid) VALUES (?,?,?,?,)';
-            database.query(query, [result[0].UserID, result[0].loanAmount, result[0].loanLength, 0,], (err) => {
-                if (err) {
-                    res.status(500).write('Error inserting loan');
-                    throw err;
-                }
-            });
-        });
-    }
-    res.status(200).write(JSON.stringify('Loan updated successfully'));
-    res.end()
-})
-
-/////////////
-// payments
-/////////////
 
