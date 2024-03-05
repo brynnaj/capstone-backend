@@ -100,6 +100,7 @@ app.post('/newuser', (req, res) => {
       throw err;
       res.end()
     }
+
     res.status(200).write(JSON.stringify('User registered successfully'));
     res.end()
   });
@@ -187,6 +188,7 @@ app.post('/loans', (req, res) => {
 //endpoint to fetch loans to display on dashboard
 app.post('/loaninfo', (req, res) => {
     const { UserID } = req.body
+    console.log()
   let query = 'SELECT s.LoanStatus, e.loanType, e.loanAmount, e.loanLength FROM status s JOIN evaluate e ON s.EvaluationID = e.EvaluationID WHERE s.UserID = ?';
     database.query(query, [UserID], (err, result) => {
         if (err) {
@@ -212,7 +214,7 @@ app.post('/adminDashboard', (req, res) => {})
 
 app.post('/reviewLoan', (req, res) => {
   const query = 'SELECT e.* FROM evaluate e JOIN status s ON e.EvaluationID = s.EvaluationID WHERE s.LoanStatus = ?';
-    database.query(query, ['under review'], (err, result) => {
+    database.query(query, ['Under Review'], (err, result) => {
         if (err) {
             res.status(500).write('Error fetching loans');
             throw err;
@@ -232,7 +234,7 @@ app.post('/updateLoan', (req, res) => {
         }
         
     });
-    if (LoanStatus === 'approved') {
+    if (LoanStatus === 'Approved') {
         query = 'SELECT * FROM evaluate WHERE EvaluationID = ?';
         database.query(query, [EvaluationID], (err, result) => {
             if (err) {
