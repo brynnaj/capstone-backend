@@ -45,15 +45,19 @@ app.post('/api/evaluateLoan', async (req, res) => {
                     res.end()
                     throw err;
                 }
-                console.log(result[0])
-                insertQuery = 'INSERT INTO status (UserID, EvaluationID, Risk, LoanStatus, Reason) VALUES (?,?,?,?,?)';
-                database.query(insertQuery, [UserID, result[0].EvaluationID, result[0].riskLevel, 'under review', result[0].reason], (err) => {
-                    if (err) {
-                        res.status(500).write(JSON.stringify( {errorKey: 500, error: err} ));
-                        res.end()
-                        throw err;
-                    }
-                });
+                if (result.length === 0) {
+                    res.status(404).write(JSON.stringify( {errorKey: 404, error: 'No evaluation found for the provided criteria'} ));
+                    res.end();
+                } else {
+                    insertQuery = 'INSERT INTO status (UserID, EvaluationID, Risk, LoanStatus, Reason) VALUES (?,?,?,?,?)';
+                    database.query(insertQuery, [UserID, result[0].EvaluationID, result[0].riskLevel, 'under review', result[0].reason], (err) => {
+                        if (err) {
+                            res.status(500).write(JSON.stringify( {errorKey: 500, error: err} ));
+                            res.end()
+                            throw err;
+                        }
+                    });
+                }
             });
             res.status(200).write(
                 JSON.stringify({
