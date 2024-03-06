@@ -249,7 +249,18 @@ app.post('/loaninfo', (req, res) => {
 // admin dashboard
 /////////////
 
-app.post('/adminDashboard', (req, res) => {})
+app.post('/assignedLoans', (req, res) => {
+    const { AdminID } = req.body
+    let query = 'SELECT * from Loans where adminid = ?';
+    database.query(query, [AdminID], (err, result) => {
+        if (err) {
+            res.status(500).write('Error fetching loans');
+            throw err;
+        }
+        res.status(200).write(JSON.stringify(result));
+        res.end()
+    });
+})
 
 /////////////
 // admin review
@@ -285,7 +296,7 @@ app.post('/updateLoan', (req, res) => {
                 throw err;
             }
             console.log(result[0])
-            query = 'INSERT INTO Loans (userid, loan_amount, loan_term, amount_paid, loan_type, adminid) VALUES (?,?,?,?,?,)';
+            query = 'INSERT INTO Loans (userid, loan_amount, loan_term, amount_paid, loan_type, adminid) VALUES (?,?,?,?,?,?)';
             database.query(query, [result[0].UserID, result[0].loanAmount, result[0].loanLength, 0,result[0].loanType, AdminID], (err) => {
                 if (err) {
                     res.status(500).write('Error inserting loan');
@@ -303,7 +314,7 @@ app.post('/updateLoan', (req, res) => {
 app.post('/getLoans', (req, res) => {
     const { UserID } = req.body
    
-    let query = 'SELECT DISTINCT l.* FROM Loans l LEFT JOIN status s ON l.userid = s.UserID WHERE s.userid = ? AND s.LoanStatus = ?';
+    let query = 'SELECT DISTINCT l.*, e.applyDate FROM Loans l LEFT JOIN status s ON l.userid = s.UserID LEFT JOIN evaluate e ON e.UserID = l.userid WHERE s.userid = ? AND s.LoanStatus = ?';
     database.query(query, [UserID,'Approved'], (err, result) => {
         if (err) {
             res.status(500).write('Error fetching loans');
