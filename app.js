@@ -43,6 +43,27 @@ app.post('/api/evaluateLoan', async (req, res) => {
                 throw err;
             }
         });
+        let query = 'SELECT EvaluationID FROM evaluate WHERE UserID = ? AND creditScore = ? AND income = ? AND incomeDebtRatio = ? AND expenses = ? AND loanType = ? AND loanAmount = ? AND loanLength = ?';
+        database.query(query, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength], (err, result) => {
+            if (err) {
+                res.status(500).write('Error fetching loans');
+                throw err;
+            }
+            query = 'INSERT INTO status (EvaluationID, UserID, LoanStatus, Risk, Reason) VALUES (?, ?, ?,?,?)';
+            database.query(query, [result[0].EvaluationID,UserID, 'Under Review',response[0].trim(), response[1].trim()], (err) => {
+                if (err) {
+                    res.status(500).write(JSON.stringify(
+                        {
+                            errorKey: 500,
+                            error: err
+                        }
+                    ));
+                    res.end()
+                    throw err;
+                }
+            });
+        });
+        
         res.status(200).write(
             JSON.stringify({
                 riskLevel: response[0].trim(), 
@@ -191,7 +212,7 @@ app.post('/loans', (req, res) => {
 //endpoint to fetch loans to display on dashboard
 app.post('/loaninfo', (req, res) => {
     const { UserID } = req.body
-    console.log()
+    console.log(UserID,req.body)
   let query = 'SELECT s.LoanStatus, e.loanType, e.loanAmount, e.loanLength FROM status s JOIN evaluate e ON s.EvaluationID = e.EvaluationID WHERE s.UserID = ?';
     database.query(query, [UserID], (err, result) => {
         if (err) {
@@ -199,6 +220,7 @@ app.post('/loaninfo', (req, res) => {
         throw err;
         res.end()
         }
+        console.log(result)
         res.status(200).write(JSON.stringify(result));
         res.end()
     });
