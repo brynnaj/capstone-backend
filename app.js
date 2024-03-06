@@ -178,7 +178,8 @@ app.post('/adminsignin', (req, res) => {
     if (result.length === 0) {
       res.status(400).json({ message: 'Invalid userid or password' });
     } else {
-      res.status(200).json({ message: 'Login successful' });
+      res.status(200).write(JSON.stringify(result));
+        res.end()
     }
   });
 });
