@@ -32,52 +32,54 @@ app.post('/api/evaluateLoan', async (req, res) => {
   try {
       const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
       const response = completion.choices[0].message.content.split('|||');
+      
+      if (UserID){
+        const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason, applyDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)';
+        database.query(insertQuery, [UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim(), applyDate], (err) => {
+            if (err) {
+                res.status(500).write(JSON.stringify({
+                    errorKey: 500,
+                    error: err
+                }));
+                res.end()
+                return;
+            }
+        });
 
-      const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason, applyDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)';
-      database.query(insertQuery, [UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim(), applyDate], (err) => {
-          if (err) {
-              res.status(500).write(JSON.stringify({
-                  errorKey: 500,
-                  error: err
-              }));
-              res.end()
-              return;
-          }
-      });
+        let query = 'SELECT EvaluationID FROM evaluate WHERE UserID = ? AND applyDate = ?';
+        database.query(query, [UserID, applyDate], (err, result) => {
+            if (err) {
+                res.status(500).write(JSON.stringify({
+                    errorKey: 500,
+                    error: 'Error fetching loans'
+                }));
+                res.end()
+                return;
+            }
 
-      let query = 'SELECT EvaluationID FROM evaluate WHERE UserID = ? AND applyDate = ?';
-      database.query(query, [UserID, applyDate], (err, result) => {
-          if (err) {
-              res.status(500).write(JSON.stringify({
-                  errorKey: 500,
-                  error: 'Error fetching loans'
-              }));
-              res.end()
-              return;
-          }
-
-          if (result.length > 0) {
-              const evaluationID = result[0].EvaluationID;
-              const loanStatusQuery = 'INSERT INTO status (EvaluationID, UserID, LoanStatus, Risk, Reason) VALUES (?, ?, ?, ?, ?)';
-              database.query(loanStatusQuery, [evaluationID, UserID, 'Under Review', response[0].trim(), response[1].trim()], (err) => {
-                  if (err) {
-                      res.status(500).write(JSON.stringify({
-                          errorKey: 500,
-                          error: err
-                      }));
-                      res.end()
-                      return;
-                  }
-              });
-          } else {
-              res.status(404).write(JSON.stringify({
-                  errorKey: 404,
-                  error: 'No matching records found'
-              }));
-              res.end()
-              return;
-          }
-      });
+            if (result.length > 0) {
+                const evaluationID = result[0].EvaluationID;
+                const loanStatusQuery = 'INSERT INTO status (EvaluationID, UserID, LoanStatus, Risk, Reason) VALUES (?, ?, ?, ?, ?)';
+                database.query(loanStatusQuery, [evaluationID, UserID, 'Under Review', response[0].trim(), response[1].trim()], (err) => {
+                    if (err) {
+                        res.status(500).write(JSON.stringify({
+                            errorKey: 500,
+                            error: err
+                        }));
+                        res.end()
+                        return;
+                    }
+                });
+            } else {
+                res.status(404).write(JSON.stringify({
+                    errorKey: 404,
+                    error: 'No matching records found'
+                }));
+                res.end()
+                return;
+            }
+        });
+      }
 
       res.status(200).write(JSON.stringify({
           riskLevel: response[0].trim(),
@@ -127,6 +129,7 @@ app.post('/newuser', (req, res) => {
 
       res.end()
     }
+
   });
   
   // query that inserts data into the database
@@ -265,7 +268,7 @@ app.post('/reviewLoan', (req, res) => {
 })
 
 app.post('/updateLoan', (req, res) => {
-    const { EvaluationID, LoanStatus } = req.body;
+    const { EvaluationID, LoanStatus, AdminID } = req.body;
     let query = 'UPDATE status SET LoanStatus = ? WHERE EvaluationID = ?';
     database.query(query, [LoanStatus, EvaluationID], (err) => {
         if (err) {
@@ -282,8 +285,8 @@ app.post('/updateLoan', (req, res) => {
                 throw err;
             }
             console.log(result[0])
-            query = 'INSERT INTO Loans (userid, loan_amount, loan_term, amount_paid, loan_type) VALUES (?,?,?,?,?)';
-            database.query(query, [result[0].UserID, result[0].loanAmount, result[0].loanLength, 0,result[0].loanType], (err) => {
+            query = 'INSERT INTO Loans (userid, loan_amount, loan_term, amount_paid, loan_type, adminid) VALUES (?,?,?,?,?,)';
+            database.query(query, [result[0].UserID, result[0].loanAmount, result[0].loanLength, 0,result[0].loanType, AdminID], (err) => {
                 if (err) {
                     res.status(500).write('Error inserting loan');
                     throw err;
@@ -300,8 +303,8 @@ app.post('/updateLoan', (req, res) => {
 app.post('/getLoans', (req, res) => {
     const { UserID } = req.body
    
-    let query = 'SELECT * FROM Loans WHERE UserID = ?';
-    database.query(query, [UserID], (err, result) => {
+    let query = 'SELECT DISTINCT l.* FROM Loans l LEFT JOIN status s ON l.userid = s.UserID WHERE s.userid = ? AND s.LoanStatus = ?';
+    database.query(query, [UserID,'Approved'], (err, result) => {
         if (err) {
             res.status(500).write('Error fetching loans');
             throw err;
