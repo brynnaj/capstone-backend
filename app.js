@@ -19,67 +19,73 @@ app.post('/api/botMessage', async (req, res) => {
 })
 
 app.post('/api/evaluateLoan', async (req, res) => {
-    const { UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
-    if (!creditScore || !income || !incomeDebtRatio || !expenses || !loanType || !loanAmount || !loanLength) {
-        res.status(400).write(JSON.stringify({
-                errorKey: 400,
-                error: 'Missing parameter'
-            }));
-        res.end()
-    }
-    try{
-        const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
-        const response = completion.choices[0].message.content.split('|||');
-        const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)';
-        database.query(insertQuery, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
-            if (err) {
-                res.status(500).write(JSON.stringify(
-                    {
-                        errorKey: 500,
-                        error: err
-                    }
-                ));
-                res.end()
-                throw err;
-            }
-        });
-        let query = 'SELECT EvaluationID FROM evaluate WHERE UserID = ? AND creditScore = ? AND income = ? AND incomeDebtRatio = ? AND expenses = ? AND loanType = ? AND loanAmount = ? AND loanLength = ?';
-        database.query(query, [UserID ,creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength], (err, result) => {
-            if (err) {
-                res.status(500).write('Error fetching loans');
-                throw err;
-            }
-            query = 'INSERT INTO status (EvaluationID, UserID, LoanStatus, Risk, Reason) VALUES (?, ?, ?,?,?)';
-            database.query(query, [result[0].EvaluationID,UserID, 'Under Review',response[0].trim(), response[1].trim()], (err) => {
-                if (err) {
-                    res.status(500).write(JSON.stringify(
-                        {
-                            errorKey: 500,
-                            error: err
-                        }
-                    ));
-                    res.end()
-                    throw err;
-                }
-            });
-        });
-        
-        res.status(200).write(
-            JSON.stringify({
-                riskLevel: response[0].trim(), 
-                reason: response[1].trim()
-            }))
-        res.end()
-    } catch {
-        res.status(500).write(JSON.stringify(
-            {
-                errorKey: 500,
-                error: 'Internal server error'
-            }
-        ));
-        res.end()
-    }
-})
+  const { UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
+  if (!creditScore || !income || !incomeDebtRatio || !expenses || !loanType || !loanAmount || !loanLength) {
+      res.status(400).json({
+          errorKey: 400,
+          error: 'Missing parameter'
+      });
+      return;
+  }
+
+  try {
+      const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
+      const response = completion.choices[0].message.content.split('|||');
+
+      const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+      database.query(insertQuery, [UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
+          if (err) {
+              res.status(500).json({
+                  errorKey: 500,
+                  error: err
+              });
+              return;
+          }
+      });
+
+      let query = 'SELECT EvaluationID FROM evaluate WHERE UserID = ? AND creditScore = ? AND income = ? AND incomeDebtRatio = ? AND expenses = ? AND loanType = ? AND loanAmount = ? AND loanLength = ?';
+      database.query(query, [UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength], (err, result) => {
+          if (err) {
+              res.status(500).json({
+                  errorKey: 500,
+                  error: 'Error fetching loans'
+              });
+              return;
+          }
+
+          if (result.length > 0) {
+              const evaluationID = result[0].EvaluationID;
+              const loanStatusQuery = 'INSERT INTO status (EvaluationID, UserID, LoanStatus, Risk, Reason) VALUES (?, ?, ?, ?, ?)';
+              database.query(loanStatusQuery, [evaluationID, UserID, 'Under Review', response[0].trim(), response[1].trim()], (err) => {
+                  if (err) {
+                      res.status(500).json({
+                          errorKey: 500,
+                          error: err
+                      });
+                      return;
+                  }
+              });
+          } else {
+              res.status(404).json({
+                  errorKey: 404,
+                  error: 'No matching records found'
+              });
+              return;
+          }
+      });
+
+      res.status(200).json({
+          riskLevel: response[0].trim(),
+          reason: response[1].trim()
+      });
+  } catch (error) {
+      res.status(500).json({
+          errorKey: 500,
+          error: 'Internal server error'
+      });
+  }
+});
+
 
 //creates new user
 app.post('/newuser', (req, res) => {
