@@ -19,12 +19,13 @@ app.post('/api/botMessage', async (req, res) => {
 })
 
 app.post('/api/evaluateLoan', async (req, res) => {
-  const { UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength } = req.body;
+  const { UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, applyDate } = req.body;
   if (!creditScore || !income || !incomeDebtRatio || !expenses || !loanType || !loanAmount || !loanLength) {
-      res.status(400).json({
+      res.status(400).write(JSON.stringify({
           errorKey: 400,
           error: 'Missing parameter'
-      });
+      }));
+      res.end()
       return;
   }
 
@@ -32,24 +33,26 @@ app.post('/api/evaluateLoan', async (req, res) => {
       const completion = await chatbot.evaluateLoan(creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength);
       const response = completion.choices[0].message.content.split('|||');
 
-      const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-      database.query(insertQuery, [UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim()], (err) => {
+      const insertQuery = 'INSERT INTO evaluate (UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, riskLevel, reason, applyDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)';
+      database.query(insertQuery, [UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength, response[0].trim(), response[1].trim(), applyDate], (err) => {
           if (err) {
-              res.status(500).json({
+              res.status(500).write(JSON.stringify({
                   errorKey: 500,
                   error: err
-              });
+              }));
+              res.end()
               return;
           }
       });
 
-      let query = 'SELECT EvaluationID FROM evaluate WHERE UserID = ? AND creditScore = ? AND income = ? AND incomeDebtRatio = ? AND expenses = ? AND loanType = ? AND loanAmount = ? AND loanLength = ?';
-      database.query(query, [UserID, creditScore, income, incomeDebtRatio, expenses, loanType, loanAmount, loanLength], (err, result) => {
+      let query = 'SELECT EvaluationID FROM evaluate WHERE UserID = ? AND applyDate = ?';
+      database.query(query, [UserID, applyDate], (err, result) => {
           if (err) {
-              res.status(500).json({
+              res.status(500).write(JSON.stringify({
                   errorKey: 500,
                   error: 'Error fetching loans'
-              });
+              }));
+              res.end()
               return;
           }
 
@@ -58,31 +61,35 @@ app.post('/api/evaluateLoan', async (req, res) => {
               const loanStatusQuery = 'INSERT INTO status (EvaluationID, UserID, LoanStatus, Risk, Reason) VALUES (?, ?, ?, ?, ?)';
               database.query(loanStatusQuery, [evaluationID, UserID, 'Under Review', response[0].trim(), response[1].trim()], (err) => {
                   if (err) {
-                      res.status(500).json({
+                      res.status(500).write(JSON.stringify({
                           errorKey: 500,
                           error: err
-                      });
+                      }));
+                      res.end()
                       return;
                   }
               });
           } else {
-              res.status(404).json({
+              res.status(404).write(JSON.stringify({
                   errorKey: 404,
                   error: 'No matching records found'
-              });
+              }));
+              res.end()
               return;
           }
       });
 
-      res.status(200).json({
+      res.status(200).write(JSON.stringify({
           riskLevel: response[0].trim(),
           reason: response[1].trim()
-      });
+      }));
+      res.end()
   } catch (error) {
-      res.status(500).json({
+      res.status(500).write(JSON.stringify({
           errorKey: 500,
           error: 'Internal server error'
-      });
+      }));
+      res.end()
   }
 });
 
