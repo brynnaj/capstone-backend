@@ -260,6 +260,7 @@ app.post('/assignedLoans', (req, res) => {
         res.status(200).write(JSON.stringify(result));
         res.end()
     });
+
 })
 
 /////////////
@@ -312,10 +313,12 @@ app.post('/updateLoan', (req, res) => {
 
 
 app.post('/getLoans', (req, res) => {
-    const { UserID } = req.body
+    const { UserID } = req.body 
    
-    let query = 'SELECT DISTINCT l.*, e.applyDate FROM Loans l LEFT JOIN status s ON l.userid = s.UserID LEFT JOIN evaluate e ON e.UserID = l.userid WHERE s.userid = ? AND s.LoanStatus = ?';
-    database.query(query, [UserID,'Approved'], (err, result) => {
+    let query = `
+    SELECT DISTINCT l.*, e.applyDate FROM Loans l LEFT JOIN evaluate e ON l.userid = e.UserID
+WHERE l.userid = ? AND l.loan_amount = e.loanAmount AND l.loan_term = e.loanLength AND e.applyDate IS NOT NULL`
+    database.query(query, [UserID], (err, result) => {
         if (err) {
             res.status(500).write('Error fetching loans');
             throw err;
