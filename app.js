@@ -103,46 +103,40 @@ app.post('/newuser', (req, res) => {
   const emailaddress = req.body.emailaddress;
   const password = req.body.password;
   const confirmpassword = req.body.confirmpassword;
-  console.log(req.body)
+  console.log(req.body);
+
   // checks if any of the fields are empty
   if (!firstname || !lastname || !emailaddress || !password) {
-    res.status(400).write('Please enter all fields');
-    res.end()
+    res.status(400).send('Please enter all fields');
+    return;
   }
 
-  //check if passwords and confirm password match
+  // check if passwords and confirm password match
   if (password !== confirmpassword) {
-    res.status(400).write('Passwords do not match');
-    res.end()
+    res.status(400).send('Passwords do not match');
+    return;
   }
 
   // query that checks if email already exists in the database
   const selectQuery = 'SELECT * FROM Users WHERE emailaddress = ?';
   database.query(selectQuery, [emailaddress], (err, result) => {
     if (err) {
-      res.status(500).write('Error registering user');
-      throw err;
-      res.end()
+      return res.status(500).send('Error registering user');
     }
+
     if (result.length > 0) {
-      res.status(400).write(JSON.stringify({ error: 'Email already exists' }));
-
-      res.end()
+      return res.status(400).send(JSON.stringify({ error: 'Email already exists' }));
     }
 
-  });
-  
-  // query that inserts data into the database
-  const insertQuery = 'INSERT INTO Users (firstname, lastname, emailaddress, password) VALUES (?, ?, ?, ?)';
-  database.query(insertQuery, [firstname, lastname, emailaddress, password], (err) => {
-    if (err) {
-      res.status(500).write('Error registering user');
-      throw err;
-      res.end()
-    }
+    // query that inserts data into the database
+    const insertQuery = 'INSERT INTO Users (firstname, lastname, emailaddress, password) VALUES (?, ?, ?, ?)';
+    database.query(insertQuery, [firstname, lastname, emailaddress, password], (err) => {
+      if (err) {
+        return res.status(500).send('Error registering user');
+      }
 
-    res.status(200).write(JSON.stringify('User registered successfully'));
-    res.end()
+      res.status(200).send(JSON.stringify('User registered successfully'));
+    });
   });
 });
 
