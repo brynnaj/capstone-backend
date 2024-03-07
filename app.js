@@ -224,7 +224,7 @@ app.post('/loans', (req, res) => {
 app.post('/loaninfo', (req, res) => {
     const { UserID } = req.body
     console.log(UserID,req.body)
-  let query = 'SELECT s.LoanStatus, e.loanType, e.loanAmount, e.loanLength FROM status s JOIN evaluate e ON s.EvaluationID = e.EvaluationID WHERE s.UserID = ?';
+  let query = 'SELECT s.LoanStatus, e.loanType, e.loanAmount, e.loanLength, s.EvaluationID FROM status s JOIN evaluate e ON s.EvaluationID = e.EvaluationID WHERE s.UserID = ?';
     database.query(query, [UserID], (err, result) => {
         if (err) {
         res.status(500).write('Error fetching loans');
