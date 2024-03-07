@@ -337,3 +337,6 @@ app.post('/makePayment', (req, res) => {
         res.end()
     });
 })
+
+
+module.exports = app;

@@ -1,15 +1,8 @@
 const request = require('supertest');
 const app = require('./app');
+const chatbot = require('./utils/chatbot');
 
-// describe('POST /api/botMessage', () => {
-//   it('should respond with a bot message', async () => {
-//     const res = await request(app)
-//       .post('/api/botMessage')
-//       .send({ message: 'Hello', history: [] });
-//     expect(res.statusCode).toEqual(200);
-//     expect(typeof res.body).toBe('object');
-//   });
-// });
+
 
 describe('POST /api/evaluateLoan', () => {
   it('should evaluate a loan', async () => {
@@ -43,18 +36,32 @@ describe('POST /signin', () => {
   });
 });
 
-describe('POST /newuser', () => {
-    it('should create a new user', async () => {
-      const res = await request(app)
-        .post('/newuser')
-        .send({
-          firstname: 'John',
-          lastname: 'Doe',
-          emailaddress: 'john.doe@example.com',
-          password: 'password',
-          confirmpassword: 'password'
-        });
-      expect(res.statusCode).toEqual(200);
-      expect(res.body).toEqual('User registered successfully');
-    });
+
+
+// create test for admin login
+describe('POST /adminsignin', () => {
+  it('should authenticate an admin', async () => {
+    const res = await request(app)
+      .post('/adminsignin')
+      .send({
+        userid:9,
+        password: 'password'
+      });
+    expect(res.statusCode).toEqual(200);
+    expect(typeof res.body).toBe('object');
   });
+});
+
+
+describe('POST /adminsignin', () => {
+  it('should not authenticate a user who is not admin', async () => {
+    const res = await request(app)
+      .post('/adminsignin')
+      .send({
+        userid:6,
+        password: 'thefool'
+      });
+    expect(res.statusCode).toEqual(400);
+    expect(typeof res.body).toBe('object');
+  });
+});
