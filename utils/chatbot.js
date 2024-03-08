@@ -8,22 +8,27 @@ const fs = require('fs');
 function connectChat(server){
     const io = socketIO(server,{
         cors: {
-          origin: 'http://localhost:3000',
+          origin: '*',
           methods: ['GET', 'POST'],
         },
       })
+    const adminList = []
     io.on('connection', socket=>{
         let user
         let role
-        let adminList = []
         socket.on('get user', cred =>{
             cred.firstname ? user = cred.firstname : user = `Guest ${socket.id.substring(0,5)}`
             if (cred.usertype === 'admin') {
-                adminList.push(user)
+                if (!adminList.includes(user)){
+                  adminList.push(user)
+                }
+                
                 role = 'admin'
+                io.emit('addAdminList', {admin: cred.firstname})
             } else {
                 role = 'user'
             }
+          console.log(role)
         })
         socket.on('get adminList', userid=> {
             io.emit('adminList', {userid,adminList})
@@ -36,6 +41,14 @@ function connectChat(server){
         socket.on('chat message', msg=> {
             console.log(msg)
             io.to(msg.room).emit('chat message', {user: msg.user, msg: msg.message})
+        })
+        socket.on('disconnect', ()=>{
+          console.log(role)
+            switch(role){
+                case 'admin':
+                    io.emit('removeAdminList', {admin:user})
+                    break
+            }
         })
     })
 }

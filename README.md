@@ -1,6 +1,7 @@
 
 # Loan IQ Server
 
+https://main.dxn5zfnjwv4w7.amplifyapp.com/
 This is a Node.js server application built with Express.js. It provides a set of API endpoints for a loan evaluation system. The server uses a chatbot for some operations and interacts with a database for data persistence.
 
 ## Features
