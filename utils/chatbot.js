@@ -3,6 +3,7 @@ const apiKey = process.env.apiKey
 const OpenAI = require('openai')
 const openai = new OpenAI({apiKey})
 const socketIO = require('socket.io');
+const fs = require('fs');
 
 function connectChat(server){
     const io = socketIO(server,{
@@ -40,12 +41,59 @@ function connectChat(server){
 }
 
 async function botMessage(message, history){
+    let JSX = ''
+    if (message.toLowerCase().includes('dashboard')){
+        const dashboard = fs.readFileSync('./utils/jsx-code/UserDashboard.txt').toString() + '\n///NEXT///\n'
+        const dashboardHeader = fs.readFileSync('./utils/jsx-code/DashboardHeader.txt').toString() + '\n///NEXT///\n'
+        JSX += dashboard + dashboardHeader
+    }
+    if (message.toLowerCase().includes('loan')){
+        const loan = fs.readFileSync('./utils/jsx-code/Loan.txt').toString() + '\n///NEXT///\n'
+        JSX += loan
+    }
+    if (message.toLowerCase().includes('payment')){
+        const payment = fs.readFileSync('./utils/jsx-code/Payment.txt').toString() + '\n///NEXT///\n'
+        JSX += payment
+    }
+    if (message.toLowerCase().includes('register') || message.toLowerCase().includes('sign up')){
+        const register = fs.readFileSync('./utils/jsx-code/Register.txt').toString() + '\n///NEXT///\n'
+        JSX += register
+    }
+    if (message.toLowerCase().includes('login') || message.toLowerCase().includes('sign in')){
+        const login = fs.readFileSync('./utils/jsx-code/Login.txt').toString() + '\n///NEXT///\n'
+        JSX += login
+    }
+    if (message.toLowerCase().includes('home')){
+        const home = fs.readFileSync('./utils/jsx-code/Home.txt').toString() + '\n///NEXT///\n'
+        JSX += home
+    }
+    if (message.toLowerCase().includes('apply')){
+        const apply = fs.readFileSync('./utils/jsx-code/Apply.txt').toString() + '\n///NEXT///\n'
+        JSX += apply
+    }
+    if (message.toLowerCase().includes('about')){
+        const about = fs.readFileSync('./utils/jsx-code/About.txt').toString() + '\n///NEXT///\n'
+        JSX += about
+    }
     const completion = await openai.chat.completions.create({
         messages: [
           {
             role: "system",
             // Will feed the AI our html code later so that it knows the functionality of our website
-            content: `You are a chatbot named Kale for a loan management website. 
+            content: `You are a chatbot named LoanBot for a loan management website.
+                      Here is some relevant JSX code for their specific query: 
+                      |||
+                      ${JSX}
+                      |||
+                      Here is more info on how the website works:
+                      |||
+                        The website is a loan management system where users can apply for loans, make payments, and view their dashboard.
+                        The users put in their information and the system will evaluate their risk level for a loan.
+                        An admin can view the users and their risk levels. The admin can decide to approve or deny the loan.
+                        All loans the user has will be displayed on their dashboard.
+                        The ones approved will be displayed in the payment section of the dashboard.
+                        On the payment section, the user can make payments for their loans.
+                      |||
                       You are to answer queries that the user has. Your response must not be longer than 1 paragraph.
                       Here is the conversation so far ||| ${history} |||`,
           },
