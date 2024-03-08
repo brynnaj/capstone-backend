@@ -12,8 +12,30 @@ function connectChat(server){
         },
       })
     io.on('connection', socket=>{
-        socket.on('joinRoom', room => socket.join(room))
-        socket.on('chat message', msg=> io.to(msg.room).emit('chat message', `You: ${msg.message}`))
+        let user
+        let role
+        let adminList = []
+        socket.on('get user', cred =>{
+            cred.firstname ? user = cred.firstname : user = `Guest ${socket.id.substring(0,5)}`
+            if (cred.usertype === 'admin') {
+                adminList.push(user)
+                role = 'admin'
+            } else {
+                role = 'user'
+            }
+        })
+        socket.on('get adminList', userid=> {
+            io.emit('adminList', {userid,adminList})
+        })
+        socket.on('joinRoom', room => {
+            socket.join(room)
+            io.emit('ping admin', room)
+        })
+        socket.on('admin join', room => socket.join(room))
+        socket.on('chat message', msg=> {
+            console.log(msg)
+            io.to(msg.room).emit('chat message', {user: msg.user, msg: msg.message})
+        })
     })
 }
 
